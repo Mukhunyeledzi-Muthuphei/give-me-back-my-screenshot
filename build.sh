@@ -25,6 +25,7 @@ lipo -create "$out/$exe-arm64" "$out/$exe-x86_64" -output "$app/Contents/MacOS/$
 rm "$out/$exe-arm64" "$out/$exe-x86_64"
 
 cp "$here/app/Info.plist" "$app/Contents/Info.plist"
+cp "$here/app/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version" "$app/Contents/Info.plist"
 cp "$here/give-me-back-my-screenshot" "$app/Contents/Resources/"  # command-line companion
