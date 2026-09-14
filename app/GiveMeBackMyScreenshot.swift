@@ -5,6 +5,8 @@
 // copied to the clipboard as an image plus the file itself.
 
 import AppKit
+import os
+import ServiceManagement
 import UniformTypeIdentifiers
 import UserNotifications
 
@@ -52,8 +54,11 @@ func screenshots(in folder: URL) -> [Screenshot] {
     .sorted { $0.created > $1.created }
 }
 
+private let logger = Logger(subsystem: "com.givemebackmyscreenshot.app", category: "app")
+
+/// View with: log stream --predicate 'subsystem == "com.givemebackmyscreenshot.app"'
 func log(_ message: String) {
-    FileHandle.standardError.write(Data("\(Date()) \(message)\n".utf8))
+    logger.log("\(message, privacy: .public)")
 }
 
 /// Supplies TIFF only if an app actually asks for it; a Retina TIFF is tens of MB.
@@ -134,21 +139,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
     private var pauseItem: NSMenuItem!
+    private var loginItem: NSMenuItem!
     private var source: DispatchSourceFileSystemObject?
     private var watchedFolder: URL?
+    private var watching = false
     private var lastCopied: URL?
     private var pendingScan: DispatchWorkItem?
     private var tiffProvider: TIFFProvider?  // the pasteboard doesn't retain it
     private var paused = UserDefaults.standard.bool(forKey: "paused")
 
     func applicationDidFinishLaunching(_ note: Notification) {
+        guard isInApplicationsFolder() else { return askToMoveToApplications() }
         setUpMenu()
+        if !UserDefaults.standard.bool(forKey: "welcomed") {
+            UserDefaults.standard.set(true, forKey: "welcomed")
+            try? SMAppService.mainApp.register()
+            updateMenu()
+            showWelcome()
+        }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in }
         watch()
-        // Baseline: don't copy whatever screenshot already exists at launch.
-        lastCopied = watchedFolder.flatMap { screenshots(in: $0).first?.url }
         // Pick up changes to the save location.
         Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.watch() }
+    }
+
+    // MARK: First launch
+
+    /// Launched from Downloads, macOS runs the app from a temporary read-only copy
+    /// (App Translocation), which would break Open at Login.
+    private func isInApplicationsFolder() -> Bool {
+        let path = Bundle.main.bundleURL.resolvingSymlinksInPath().path
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return path.hasPrefix("/Applications/") || path.hasPrefix(home + "/Applications/")
+    }
+
+    private func askToMoveToApplications() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Move to Applications first"
+        alert.informativeText = "Drag Give Me Back My Screenshot into your Applications folder, then open it from there."
+        alert.addButton(withTitle: "Open Applications Folder")
+        alert.addButton(withTitle: "Quit")
+        if alert.runModal() == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
+        }
+        NSApp.terminate(nil)
+    }
+
+    private func showWelcome() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Give Me Back My Screenshot is running"
+        alert.informativeText = """
+            It lives in your menu bar (the camera icon). Every screenshot you take is now \
+            on your clipboard, so just press ⌘V. Drag the icon to drop your latest screenshot anywhere.
+
+            Next, macOS will ask to let it access your Desktop so it can see new screenshots. Click Allow.
+            """
+        alert.addButton(withTitle: "Got It")
+        alert.runModal()
     }
 
     // MARK: Menu
@@ -163,6 +212,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         pauseItem = NSMenuItem(title: "Copy New Screenshots Automatically", action: #selector(togglePaused), keyEquivalent: "")
         menu.addItem(pauseItem)
+        loginItem = NSMenuItem(title: "Open at Login", action: #selector(toggleLoginItem), keyEquivalent: "")
+        menu.addItem(loginItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Give Me Back My Screenshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.items.forEach { if $0.action != #selector(NSApplication.terminate(_:)) { $0.target = self } }
@@ -186,7 +237,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateMenu() {
         pauseItem.state = paused ? .off : .on
+        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         statusItem.button?.appearsDisabled = paused
+    }
+
+    @objc private func toggleLoginItem() {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            log("login item: \(error.localizedDescription)")
+        }
+        updateMenu()
     }
 
     @objc private func togglePaused() {
@@ -209,12 +274,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func watch() {
         let folder = screenshotFolder()
-        guard folder != watchedFolder || source == nil else { return }
+        guard !watching, folder != watchedFolder || source == nil else { return }
         source?.cancel()
         source = nil
+        watching = true
 
-        let fd = open(folder.path, O_EVTONLY)
-        guard fd >= 0 else { return log("cannot watch \(folder.path): \(String(cString: strerror(errno)))") }
+        // The first open of a protected folder blocks until the user answers the
+        // privacy prompt, so keep it off the main thread.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fd = open(folder.path, O_EVTONLY)
+            let error = errno
+            // Baseline: don't copy whatever screenshot is already there.
+            let newest = fd >= 0 ? screenshots(in: folder).first?.url : nil
+            DispatchQueue.main.async {
+                self.watching = false
+                guard fd >= 0 else { return log("cannot watch \(folder.path): \(String(cString: strerror(error)))") }
+                if self.lastCopied == nil || folder != self.watchedFolder { self.lastCopied = newest }
+                self.attach(fd: fd, folder: folder)
+            }
+        }
+    }
+
+    private func attach(fd: Int32, folder: URL) {
         let src = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename, .delete], queue: .main)
         src.setEventHandler { [weak self, weak src] in
             guard let self, let src else { return }

@@ -1,0 +1,38 @@
+name: Release
+
+# Push a version tag (git tag v1.1 && git push origin v1.1) to build the app
+# and publish it as a GitHub release with the zip attached.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build, e.g. v1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Build
+        run: ./build.sh "$TAG"
+
+      - name: Publish release
+        run: |
+          zip="build/Give-Me-Back-My-Screenshot.zip"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$zip" --clobber
+          else
+            gh release create "$TAG" "$zip" --title "Give Me Back My Screenshot $TAG" --generate-notes
+          fi

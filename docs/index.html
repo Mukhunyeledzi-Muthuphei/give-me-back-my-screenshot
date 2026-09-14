@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Give Me Back My Screenshot</title>
+<meta name="description" content="The thumbnail vanished. Your screenshot didn't. A tiny free Mac app that puts every screenshot on your clipboard and lets you drag it from the menu bar any time.">
+<meta property="og:title" content="Give Me Back My Screenshot">
+<meta property="og:description" content="Every Mac screenshot, on your clipboard automatically. Press ⌘V. Free and open source.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f6f1e9">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📸</text></svg>">
+<style>
+  :root {
+    --bg: #f6f1e9;
+    --bg-2: #efe7db;
+    --card: #fffdf9;
+    --ink: #1b1712;
+    --ink-2: #5d554b;
+    --line: #e2d8c9;
+    --accent: #e8492b;
+    --accent-ink: #ffffff;
+    --accent-soft: #fbe0d8;
+    --screen: #2a2520;
+    --screen-2: #3a342d;
+    --shadow: 0 1px 2px rgb(27 23 18 / .06), 0 12px 32px -12px rgb(27 23 18 / .18);
+    --radius: 18px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14110e;
+      --bg-2: #1c1814;
+      --card: #211c17;
+      --ink: #f4ede3;
+      --ink-2: #b3a898;
+      --line: #342d25;
+      --accent: #ff6a4a;
+      --accent-ink: #1b0c07;
+      --accent-soft: #3a1d15;
+      --screen: #0b0907;
+      --screen-2: #1d1914;
+      --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 16px 40px -16px rgb(0 0 0 / .7);
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; }
+
+  /* Header */
+  header { padding-block: 22px; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -.01em; text-decoration: none; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+  .gh { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); text-decoration: none; font-size: 15px; }
+  .gh:hover { color: var(--ink); }
+
+  /* Hero */
+  .hero { padding-block: 40px 72px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: center; }
+  .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-2); background: var(--card); border: 1px solid var(--line); padding: 5px 12px; border-radius: 999px; }
+  .eyebrow b { color: var(--accent); font-weight: 600; }
+  h1 { font-size: clamp(42px, 6.4vw, 76px); line-height: .98; letter-spacing: -.035em; margin: 22px 0 20px; font-weight: 750; text-wrap: balance; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { font-size: clamp(18px, 2vw, 21px); color: var(--ink-2); max-width: 30em; margin: 0 0 32px; text-wrap: pretty; }
+  kbd { font-family: var(--mono); font-size: .88em; background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; color: var(--ink); white-space: nowrap; }
+  .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 15px 24px; border-radius: 14px; font-weight: 620; text-decoration: none; font-size: 17px; transition: transform .15s ease, box-shadow .15s ease; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 8px 24px -10px var(--accent); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -10px var(--accent); }
+  .btn-ghost { border: 1px solid var(--line); background: var(--card); }
+  .btn-ghost:hover { transform: translateY(-1px); }
+  .meta { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
+
+  /* Demo */
+  .demo { position: relative; aspect-ratio: 5 / 4; max-width: 100%; border-radius: 22px; background: var(--screen); box-shadow: var(--shadow); overflow: hidden; color: #f4ede3; }
+  .menubar { height: 28px; background: rgb(255 255 255 / .08); display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding-inline: 14px; font-size: 12px; color: rgb(255 255 255 / .75); }
+  .menubar .icon { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 4px; }
+  .desk { position: absolute; inset: 28px 0 0; }
+  .window { position: absolute; left: 7%; top: 10%; width: 56%; height: 52%; background: var(--screen-2); border-radius: 10px; padding: 26px 16px 14px; }
+  .window::before { content: ""; position: absolute; top: 9px; left: 10px; width: 36px; height: 8px; background: radial-gradient(circle at 4px 4px, #ff5f57 3.5px, transparent 4px), radial-gradient(circle at 18px 4px, #febc2e 3.5px, transparent 4px), radial-gradient(circle at 32px 4px, #28c840 3.5px, transparent 4px); }
+  .bars span { display: block; height: 9px; border-radius: 5px; background: rgb(255 255 255 / .12); margin-bottom: 9px; }
+  .chart { margin-top: 14px; display: flex; align-items: flex-end; gap: 7px; height: 38%; }
+  .chart i { flex: 1; border-radius: 4px 4px 0 0; background: var(--accent); opacity: .85; }
+  .select { position: absolute; left: 9%; top: 14%; width: 40%; height: 40%; border: 1.5px dashed #fff; background: rgb(255 255 255 / .06); opacity: 0; animation: select 9s infinite; }
+  .flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: flash 9s infinite; pointer-events: none; }
+  .thumb { position: absolute; right: 5%; bottom: 7%; width: 26%; aspect-ratio: 4 / 3; border-radius: 6px; background: var(--screen-2); border: 2px solid rgb(255 255 255 / .85); box-shadow: 0 10px 30px rgb(0 0 0 / .5); opacity: 0; animation: thumb 9s infinite; overflow: hidden; }
+  .thumb .chart { height: 60%; margin: 18% 10% 0; gap: 4px; }
+  .gone { position: absolute; right: 5%; bottom: 7%; font-size: 12px; color: rgb(255 255 255 / .6); opacity: 0; animation: gone 9s infinite; }
+  .chat { position: absolute; left: 7%; right: 7%; bottom: 7%; height: 34%; background: #f4ede3; color: #1b1712; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; opacity: 0; animation: chat 9s infinite; }
+  .bubble { align-self: flex-start; background: #e6ddd0; border-radius: 12px 12px 12px 4px; padding: 6px 10px; font-size: 12px; }
+  .pasted { align-self: flex-end; width: 34%; aspect-ratio: 4 / 3; border-radius: 10px; background: var(--screen-2); overflow: hidden; transform: scale(.6); opacity: 0; animation: pasted 9s infinite; }
+  .pasted .chart { height: 60%; margin: 18% 10% 0; gap: 4px; }
+  .keys { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); display: flex; gap: 6px; opacity: 0; animation: keys 9s infinite; }
+  .keys kbd { font-size: 20px; padding: 6px 12px; background: rgb(255 255 255 / .95); color: #1b1712; border-color: #d8cfc2; }
+  .toast { position: absolute; top: 8px; right: 10px; background: rgb(40 36 31 / .95); border: 1px solid rgb(255 255 255 / .12); border-radius: 10px; padding: 8px 12px; font-size: 12px; display: flex; gap: 8px; align-items: center; opacity: 0; transform: translateY(-6px); animation: toast 9s infinite; }
+  .toast b { color: #fff; font-weight: 600; }
+
+  @keyframes select { 0%, 4% { opacity: 0; } 6%, 14% { opacity: 1; } 15%, 100% { opacity: 0; } }
+  @keyframes flash { 0%, 14% { opacity: 0; } 15% { opacity: .35; } 18%, 100% { opacity: 0; } }
+  @keyframes thumb { 0%, 16% { opacity: 0; transform: translateX(20px); } 19%, 34% { opacity: 1; transform: none; } 38%, 100% { opacity: 0; transform: translateX(40px); } }
+  @keyframes gone { 0%, 39% { opacity: 0; } 42%, 50% { opacity: 1; } 53%, 100% { opacity: 0; } }
+  @keyframes toast { 0%, 38% { opacity: 0; transform: translateY(-6px); } 41%, 60% { opacity: 1; transform: none; } 64%, 100% { opacity: 0; } }
+  @keyframes chat { 0%, 52% { opacity: 0; } 56%, 95% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes keys { 0%, 60% { opacity: 0; } 63%, 71% { opacity: 1; } 74%, 100% { opacity: 0; } }
+  @keyframes pasted { 0%, 72% { opacity: 0; transform: scale(.6); } 76%, 95% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .demo * { animation: none !important; }
+    .chat, .pasted, .toast { opacity: 1 !important; transform: none !important; }
+  }
+
+  /* Sections */
+  section { padding-block: 64px; }
+  .band { background: var(--bg-2); border-block: 1px solid var(--line); }
+  h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -.025em; line-height: 1.08; margin: 0 0 14px; font-weight: 720; text-wrap: balance; }
+  .section-lede { color: var(--ink-2); max-width: 36em; margin: 0 0 40px; font-size: 19px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+  .card h3 { margin: 12px 0 6px; font-size: 19px; letter-spacing: -.01em; }
+  .card p { margin: 0; color: var(--ink-2); font-size: 16px; }
+  .glyph { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+  .strike { text-decoration: line-through; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+
+  .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .feature { display: grid; grid-template-columns: 40px 1fr; gap: 16px; align-items: start; }
+  .feature .card-inner h3 { margin: 6px 0 4px; }
+
+  .steps { counter-reset: step; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; list-style: none; padding: 0; margin: 0; }
+  .steps li { counter-increment: step; }
+  .steps li::before { content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); font-weight: 700; font-size: 16px; }
+  .note { margin-top: 22px; padding: 18px 20px; border-radius: 14px; border: 1px dashed var(--line); color: var(--ink-2); font-size: 15px; }
+  .note strong { color: var(--ink); }
+
+  details { border-bottom: 1px solid var(--line); padding-block: 18px; }
+  details:first-of-type { border-top: 1px solid var(--line); }
+  summary { cursor: pointer; font-weight: 620; font-size: 18px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; color: var(--accent); font-weight: 400; font-size: 24px; line-height: 1; }
+  details[open] summary::after { content: "–"; }
+  details p { color: var(--ink-2); margin: 10px 0 0; max-width: 46em; }
+  code { font-family: var(--mono); font-size: .9em; background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }
+
+  .final { text-align: center; }
+  .final .cta { justify-content: center; }
+  footer { padding-block: 32px 48px; color: var(--ink-2); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 24px; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: minmax(0, 1fr); gap: 40px; padding-top: 16px; }
+    .grid-3, .steps { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
+    section { padding-block: 48px; }
+  }
+  @media (max-width: 560px) {
+    .gh span { display: none; }
+    .brand { font-size: 15px; }
+    h1 { font-size: 40px; }
+  }
+  @media (max-width: 420px) {
+    .btn { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
+      </span>
+      Give Me Back My Screenshot
+    </a>
+    <a class="gh" href="https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot">
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>View on GitHub</span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <span class="eyebrow"><b>Free</b> · Open source · For macOS</span>
+      <h1>The thumbnail vanished. <em>Your screenshot didn't.</em></h1>
+      <p class="lede">
+        Take a screenshot like you always do. It's already on your clipboard, so just press <kbd>⌘V</kbd>.
+        Missed it? Drag it straight out of the menu bar, any time.
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/releases/latest/download/Give-Me-Back-My-Screenshot.zip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          Download for Mac
+        </a>
+        <a class="btn btn-ghost" href="#how">How it works</a>
+      </div>
+      <p class="meta">macOS 13 or later · Apple silicon &amp; Intel · 100 KB</p>
+    </div>
+
+    <div class="demo" role="img" aria-label="Animation: a screenshot is taken, the thumbnail disappears, a notification says it was copied, and pressing Command-V pastes it into a chat.">
+      <div class="menubar">
+        <span>Wi-Fi</span><span>100%</span>
+        <span class="icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <span>Mon 15:24</span>
+      </div>
+      <div class="desk">
+        <div class="window">
+          <div class="bars"><span style="width:70%"></span><span style="width:45%"></span></div>
+          <div class="chart"><i style="height:40%"></i><i style="height:65%"></i><i style="height:52%"></i><i style="height:88%"></i><i style="height:74%"></i></div>
+        </div>
+        <div class="select"></div>
+        <div class="thumb"><div class="chart"><i style="height:40%"></i><i style="height:65%"></i><i style="height:52%"></i><i style="height:88%"></i><i style="height:74%"></i></div></div>
+        <div class="gone">…and it's gone.</div>
+        <div class="toast"><span aria-hidden="true">📋</span><span><b>Screenshot copied</b> · paste with ⌘V</span></div>
+        <div class="chat">
+          <div class="bubble">can you send me that chart?</div>
+          <div class="pasted"><div class="chart"><i style="height:40%"></i><i style="height:65%"></i><i style="height:52%"></i><i style="height:88%"></i><i style="height:74%"></i></div></div>
+        </div>
+        <div class="keys"><kbd>⌘</kbd><kbd>V</kbd></div>
+        <div class="flash"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>You know the dance.</h2>
+      <p class="section-lede">macOS gives you about five seconds with that little floating thumbnail. After that, you're on your own.</p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg></div>
+          <h3>Blink and it's gone</h3>
+          <p>The thumbnail slides away before you've even switched to the app you wanted to paste into.</p>
+        </div>
+        <div class="card">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></div>
+          <h3>Desktop archaeology</h3>
+          <p>Now you're digging through “Screenshot 2026-09-14 at 15.24.07.png” and its forty cousins.</p>
+        </div>
+        <div class="card">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg></div>
+          <h3><span class="strike">⌃⌘⇧4</span> finger yoga</h3>
+          <p>The clipboard shortcut works, until you forget it, or wanted the file saved too.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>It just gives it back.</h2>
+      <p class="section-lede">No new shortcuts to learn. Keep screenshotting exactly the way you do today.</p>
+      <div class="features">
+        <div class="card feature">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 12l2 2 4-4"/></svg></div>
+          <div class="card-inner">
+            <h3>On your clipboard, automatically</h3>
+            <p>Every new screenshot is copied the moment it's saved, as an image for chats and docs and as a file for Finder and Mail.</p>
+          </div>
+        </div>
+        <div class="card feature">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5a2 2 0 1 1 4 0v5M13 10V8a2 2 0 1 1 4 0v4a8 8 0 0 1-8 8h-.5a6 6 0 0 1-5-2.7L2 15a2 2 0 0 1 3.3-2.2L9 16"/></svg></div>
+          <div class="card-inner">
+            <h3>Drag it from the menu bar</h3>
+            <p>Grab the icon and drop your latest screenshot into Slack, an email, a browser upload box or a folder. It's the thumbnail's drag, but it never leaves.</p>
+          </div>
+        </div>
+        <div class="card feature">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+          <div class="card-inner">
+            <h3>Works however your Mac is set up</h3>
+            <p>It spots screenshots by the metadata macOS attaches, not by file name, so any language and any save folder just work.</p>
+          </div>
+        </div>
+        <div class="card feature">
+          <div class="glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg></div>
+          <div class="card-inner">
+            <h3>Tiny, private, yours</h3>
+            <p>100 KB. No account, no network access, no tracking. Pause it from the menu whenever you want your clipboard to yourself.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <h2>Set up in under a minute.</h2>
+      <p class="section-lede">Three steps, once. After that it starts with your Mac and stays out of the way.</p>
+      <ol class="steps">
+        <li class="card">
+          <h3>Download &amp; unzip</h3>
+          <p>Drag <b>Give Me Back My Screenshot</b> into your Applications folder.</p>
+        </li>
+        <li class="card">
+          <h3>Open it</h3>
+          <p>A camera icon appears in your menu bar. It turns itself on at login.</p>
+        </li>
+        <li class="card">
+          <h3>Click Allow</h3>
+          <p>macOS asks whether it can see your Desktop, which is where new screenshots land.</p>
+        </li>
+      </ol>
+      <p class="note">
+        <strong>“Apple could not verify…” on first open?</strong> The app is free and isn't notarized by Apple yet.
+        Open <b>System Settings → Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b>. You only do this once.
+        Or build it yourself from the source.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Questions</h2>
+      <details>
+        <summary>Won't it overwrite whatever I copied?</summary>
+        <p>Yes, that's the point: a new screenshot takes over the clipboard, just as if you'd pressed ⌘C on it. Copied something important? Untick <b>Copy New Screenshots Automatically</b> in the menu to pause it.</p>
+      </details>
+      <details>
+        <summary>I copied something else. How do I get my screenshot back?</summary>
+        <p>Click the menu bar icon and choose <b>Copy Latest Screenshot</b>, or simply drag the icon to wherever you want the screenshot.</p>
+      </details>
+      <details>
+        <summary>Why does it need access to my Desktop?</summary>
+        <p>That's where macOS saves screenshots by default, and macOS protects the Desktop folder. If you save screenshots somewhere else (<kbd>⌘⇧5</kbd> → Options), it follows that folder instead.</p>
+      </details>
+      <details>
+        <summary>Does it send my screenshots anywhere?</summary>
+        <p>No. It contains no networking code at all. It reads the new file and hands it to your clipboard. The whole app is one Swift file you can read on GitHub.</p>
+      </details>
+      <details>
+        <summary>Why is there a short delay before it's copied?</summary>
+        <p>While the floating thumbnail is showing, macOS hasn't written the file yet. It lands (and gets copied) when the thumbnail goes away. Swipe the thumbnail off to skip the wait, or turn thumbnails off in <kbd>⌘⇧5</kbd> → Options.</p>
+      </details>
+      <details>
+        <summary>How do I uninstall it?</summary>
+        <p>Choose <b>Quit</b> from its menu and drag the app from Applications to the Trash.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="band final">
+    <div class="wrap">
+      <h2>Stop losing screenshots.</h2>
+      <p class="section-lede" style="margin-inline:auto">Free, open source, and 100 KB.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/releases/latest/download/Give-Me-Back-My-Screenshot.zip">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          Download for Mac
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot">Star on GitHub</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Give Me Back My Screenshot · MIT License</span>
+    <span>Made by <a href="https://github.com/Mukhunyeledzi-Muthuphei">Mukhunyeledzi Muthuphei</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
