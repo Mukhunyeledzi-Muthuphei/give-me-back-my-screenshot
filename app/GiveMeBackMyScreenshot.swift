@@ -1,4 +1,4 @@
-// Lastshot — puts every new macOS screenshot on the clipboard automatically.
+// Give Me Back My Screenshot — puts every new macOS screenshot on the clipboard automatically.
 //
 // Runs as a menu bar app (no Dock icon). Watches the folder macOS saves
 // screenshots to; when a file tagged as a screen capture lands there, it is
@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setUpMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Lastshot")
+        statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Give Me Back My Screenshot")
         statusItem.button?.toolTip = "Click for menu · Drag to drop your latest screenshot anywhere"
         menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Copy Latest Screenshot", action: #selector(copyLatest), keyEquivalent: ""))
@@ -164,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pauseItem = NSMenuItem(title: "Copy New Screenshots Automatically", action: #selector(togglePaused), keyEquivalent: "")
         menu.addItem(pauseItem)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Lastshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit Give Me Back My Screenshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.items.forEach { if $0.action != #selector(NSApplication.terminate(_:)) { $0.target = self } }
 
         // The menu is attached only while opening it; otherwise the button would
@@ -267,7 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func notify(_ text: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Lastshot"
+        content.title = "Give Me Back My Screenshot"
         content.body = text
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }

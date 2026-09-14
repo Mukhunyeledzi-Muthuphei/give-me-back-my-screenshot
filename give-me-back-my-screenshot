@@ -1,5 +1,5 @@
 #!/bin/zsh
-# lastshot — give me back my screenshot.
+# give-me-back-my-screenshot
 # Finds your most recent macOS screenshot (after the floating thumbnail is gone)
 # and copies it to the clipboard, opens it, or reveals it in Finder.
 
@@ -8,7 +8,7 @@ setopt null_glob extended_glob
 
 usage() {
   cat <<'EOF'
-usage: lastshot [options]
+usage: give-me-back-my-screenshot [options]
 
   (no option)    copy the newest screenshot to the clipboard (image + file)
   -n, --nth N    use the Nth newest screenshot instead (1 = newest)
@@ -35,18 +35,18 @@ while (( $# )); do
                  if [[ $2 == <1-> ]]; then count=$2; shift; fi ;;
     --notify)    notify=1 ;;
     -h|--help)   usage; exit 0 ;;
-    *)           print -u2 "lastshot: unknown option: $1"; usage >&2; exit 2 ;;
+    *)           print -u2 "give-me-back-my-screenshot: unknown option: $1"; usage >&2; exit 2 ;;
   esac
   shift
 done
-[[ $nth == <1-> ]] || { print -u2 "lastshot: --nth must be a positive number"; exit 2; }
+[[ $nth == <1-> ]] || { print -u2 "give-me-back-my-screenshot: --nth must be a positive number"; exit 2; }
 
 say() {
   print -- "$1"
   if (( notify )); then
     osascript -e 'on run argv
       display notification (item 2 of argv) with title (item 1 of argv)
-    end run' "lastshot" "$1" >/dev/null 2>&1
+    end run' "Give Me Back My Screenshot" "$1" >/dev/null 2>&1
   fi
   return 0
 }
