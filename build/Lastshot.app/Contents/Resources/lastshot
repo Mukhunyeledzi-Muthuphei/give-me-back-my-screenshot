@@ -1,0 +1,133 @@
+#!/bin/zsh
+# lastshot — give me back my screenshot.
+# Finds your most recent macOS screenshot (after the floating thumbnail is gone)
+# and copies it to the clipboard, opens it, or reveals it in Finder.
+
+emulate -L zsh
+setopt null_glob extended_glob
+
+usage() {
+  cat <<'EOF'
+usage: lastshot [options]
+
+  (no option)    copy the newest screenshot to the clipboard (image + file)
+  -n, --nth N    use the Nth newest screenshot instead (1 = newest)
+  -o, --open     open it (Preview by default)
+  -r, --reveal   reveal it in Finder
+  -p, --path     print its path only
+  -l, --list [N] list the N newest screenshots (default 10)
+      --notify   show a macOS notification with the result (for Shortcuts)
+  -h, --help     show this help
+
+Screenshots are recognised by the metadata macOS attaches to them, so this
+works no matter the file name, language, or save location.
+EOF
+}
+
+action=copy nth=1 count=10 notify=0
+while (( $# )); do
+  case $1 in
+    -n|--nth)    nth=${2:?"--nth needs a number"}; shift ;;
+    -o|--open)   action=open ;;
+    -r|--reveal) action=reveal ;;
+    -p|--path)   action=path ;;
+    -l|--list)   action=list
+                 if [[ $2 == <1-> ]]; then count=$2; shift; fi ;;
+    --notify)    notify=1 ;;
+    -h|--help)   usage; exit 0 ;;
+    *)           print -u2 "lastshot: unknown option: $1"; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+[[ $nth == <1-> ]] || { print -u2 "lastshot: --nth must be a positive number"; exit 2; }
+
+say() {
+  print -- "$1"
+  if (( notify )); then
+    osascript -e 'on run argv
+      display notification (item 2 of argv) with title (item 1 of argv)
+    end run' "lastshot" "$1" >/dev/null 2>&1
+  fi
+  return 0
+}
+die() { say "$1" >&2; exit 1; }
+
+image_exts=(png jpg jpeg heic tiff tif gif bmp pdf)
+
+# Where macOS currently saves screenshots (set via ⌘⇧5 → Options).
+save_dir=$(defaults read com.apple.screencapture location 2>/dev/null)
+save_dir=${save_dir/#\~/$HOME}
+[[ -d $save_dir ]] || save_dir=$HOME/Desktop
+
+typeset -A seen
+candidates=()
+add() { [[ -f $1 && -z ${seen[$1]} ]] && { seen[$1]=1; candidates+=("$1"); } }
+
+# 1. The save folder, checked directly: brand-new screenshots may not be in
+#    the Spotlight index yet, but they already carry the screen-capture xattr.
+for f in $save_dir/*.(${(j:|:)~image_exts})(#i); do
+  xattr -p com.apple.metadata:kMDItemIsScreenCapture "$f" >/dev/null 2>&1 && add "$f"
+done
+
+# 2. Spotlight, for screenshots that were moved elsewhere in your home folder.
+while IFS= read -r -d '' f; do
+  add "$f"
+done < <(mdfind -0 -onlyin "$HOME" \
+  'kMDItemIsScreenCapture == 1 && kMDItemContentTypeTree == "public.image"' 2>/dev/null)
+
+(( ${#candidates} )) || die "No screenshots found (looked in $save_dir and Spotlight)."
+
+# Newest first, by file creation time.
+sorted=("${(@f)$(for f in $candidates; do
+  print -r -- "$(stat -f %B "$f") $f"
+done | sort -rn | cut -d' ' -f2-)}")
+
+
+if [[ $action == list ]]; then
+  for f in ${sorted[1,count]}; do
+    print -r -- "$(stat -f '%SB' -t '%Y-%m-%d %H:%M:%S' "$f")  $f"
+  done
+  exit 0
+fi
+
+(( nth <= ${#sorted} )) || die "Only ${#sorted} screenshot(s) found."
+shot=${sorted[nth]}
+
+case $action in
+  path)   print -r -- "$shot" ;;
+  open)   open "$shot" && say "Opened ${shot:t}" ;;
+  reveal) open -R "$shot" && say "Revealed ${shot:t}" ;;
+  copy)
+    case ${(L)shot:e} in
+      png)       uti=public.png ;;
+      jpg|jpeg)  uti=public.jpeg ;;
+      heic)      uti=public.heic ;;
+      tif|tiff)  uti=public.tiff ;;
+      gif)       uti=com.compuserve.gif ;;
+      bmp)       uti=com.microsoft.bmp ;;
+      pdf)       uti=com.adobe.pdf ;;
+    esac
+    # One pasteboard item carrying the image data, a TIFF fallback for apps
+    # that only take TIFF, and the file URL (so pasting in Finder/Mail/Slack
+    # gives the file itself).
+    osascript -l JavaScript - "$shot" "$uti" <<'JXA' >/dev/null || die "Couldn't copy ${shot:t} to the clipboard."
+ObjC.import('AppKit');
+function run(argv) {
+  const [path, uti] = argv;
+  const data = $.NSData.dataWithContentsOfFile(path);
+  if (data.isNil()) throw new Error('unreadable: ' + path);
+  const item = $.NSPasteboardItem.alloc.init;
+  item.setDataForType(data, uti);
+  if (uti !== 'public.tiff') {
+    const img = $.NSImage.alloc.initWithData(data);
+    if (!img.isNil()) item.setDataForType(img.TIFFRepresentation, 'public.tiff');
+  }
+  item.setStringForType($.NSURL.fileURLWithPath(path).absoluteString, 'public.file-url');
+  const pb = $.NSPasteboard.generalPasteboard;
+  pb.clearContents;
+  if (!pb.writeObjects($([item]))) throw new Error('pasteboard write failed');
+}
+JXA
+    say "Copied ${shot:t} — paste with ⌘V"
+    ;;
+esac

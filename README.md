@@ -1,0 +1,48 @@
+# give-me-back-my-screenshot
+
+Take a screenshot as usual (⌘⇧3, ⌘⇧4, ⌘⇧5) and it's **already on your clipboard**. Just press ⌘V.
+The file is still saved as normal.
+
+## Install
+
+```sh
+./install.sh
+```
+
+A camera icon appears in the menu bar. The first time, macOS asks whether **Lastshot** may access
+your Desktop (or wherever you save screenshots). Click **Allow**. It starts automatically at login.
+
+The menu bar icon gives you:
+
+- **Copy Latest Screenshot**: get it back after you've copied something else
+- **Show Latest in Finder**
+- **Copy New Screenshots Automatically**: untick to pause
+- **Quit Lastshot**: stays quit until next login
+
+Uninstall with `./uninstall.sh`.
+
+## How it works
+
+- macOS tags every screenshot with `kMDItemIsScreenCapture` metadata. Lastshot uses that tag
+  instead of file names, so it works in any language and follows your save location
+  (⌘⇧5 → Options), even if you change it.
+- With the floating thumbnail on, macOS writes the file only once the thumbnail goes away
+  (~5 s, or right away if you swipe it off). That's when it lands on the clipboard.
+- The clipboard gets the image **and** the file. Chats and documents paste the picture; Finder
+  and Mail paste the file.
+- It's a small native app (`app/Lastshot.swift`) because macOS doesn't let background shell
+  scripts read the Desktop. The app gets its own privacy permission instead.
+
+Log: `~/Library/Logs/Lastshot.log`
+
+## Command line (optional)
+
+`install.sh` also puts `lastshot` in `~/.local/bin`:
+
+```
+lastshot              copy newest screenshot to clipboard
+lastshot -n 2         the one before that
+lastshot -o / -r      open it / reveal it in Finder
+lastshot -p           print its path
+lastshot -l [N]       list the N newest
+```
