@@ -68,8 +68,71 @@ final class TIFFProvider: NSObject, NSPasteboardItemDataProvider {
     }
 }
 
+/// Clipboard/drag contents for a screenshot: the image data plus the file itself,
+/// so chats and documents get the picture and Finder/Mail get the file.
+func pasteboardItem(for url: URL, data: Data, tiffProvider: TIFFProvider?) -> NSPasteboardItem {
+    let type = UTType(filenameExtension: url.pathExtension) ?? .png
+    let item = NSPasteboardItem()
+    item.setString(url.absoluteString, forType: .fileURL)
+    item.setData(data, forType: NSPasteboard.PasteboardType(type.identifier))
+    if type != .tiff, let tiffProvider {
+        item.setDataProvider(tiffProvider, forTypes: [.tiff])
+    }
+    return item
+}
+
+/// Sits over the menu bar icon: a click opens the menu, a drag picks up the
+/// latest screenshot — the floating thumbnail's drag, but available any time.
+final class StatusItemDragView: NSView, NSDraggingSource {
+    var latestScreenshot: () -> URL? = { nil }
+    var openMenu: () -> Void = {}
+
+    override func mouseDown(with event: NSEvent) {
+        guard let window else { return }
+        let start = event.locationInWindow
+        while let next = window.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+            if next.type == .leftMouseUp { return openMenu() }
+            let p = next.locationInWindow
+            if hypot(p.x - start.x, p.y - start.y) > 3 { return beginDrag(with: event) }
+        }
+    }
+
+    override func rightMouseDown(with event: NSEvent) { openMenu() }
+
+    private func beginDrag(with event: NSEvent) {
+        guard let url = latestScreenshot(), let data = try? Data(contentsOf: url) else { return NSSound.beep() }
+        let item = NSDraggingItem(pasteboardWriter: pasteboardItem(for: url, data: data, tiffProvider: nil))
+        let preview = thumbnail(of: data, maxSide: 160)
+        let p = convert(event.locationInWindow, from: nil)
+        item.setDraggingFrame(NSRect(x: p.x - preview.size.width / 2, y: p.y - preview.size.height / 2,
+                                     width: preview.size.width, height: preview.size.height),
+                              contents: preview)
+        beginDraggingSession(with: [item], event: event, source: self).animatesToStartingPositionsOnCancelOrFail = true
+    }
+
+    // Copy, never move: dropping on a Finder folder must leave the original in place.
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        .copy
+    }
+
+    private func thumbnail(of data: Data, maxSide: CGFloat) -> NSImage {
+        guard let image = NSImage(data: data), image.size.width > 0, image.size.height > 0 else {
+            return NSImage(systemSymbolName: "photo", accessibilityDescription: nil)!
+        }
+        let scale = min(1, maxSide / max(image.size.width, image.size.height))
+        let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+        return NSImage(size: size, flipped: false) { rect in
+            image.draw(in: rect)
+            NSColor.white.withAlphaComponent(0.8).setStroke()
+            NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
+            return true
+        }
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
+    private var menu: NSMenu!
     private var pauseItem: NSMenuItem!
     private var source: DispatchSourceFileSystemObject?
     private var watchedFolder: URL?
@@ -93,7 +156,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setUpMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Lastshot")
-        let menu = NSMenu()
+        statusItem.button?.toolTip = "Click for menu · Drag to drop your latest screenshot anywhere"
+        menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Copy Latest Screenshot", action: #selector(copyLatest), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Show Latest in Finder", action: #selector(revealLatest), keyEquivalent: ""))
         menu.addItem(.separator())
@@ -102,7 +166,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Lastshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         menu.items.forEach { if $0.action != #selector(NSApplication.terminate(_:)) { $0.target = self } }
-        statusItem.menu = menu
+
+        // The menu is attached only while opening it; otherwise the button would
+        // swallow mouse-down and the drag view could never start a drag.
+        if let button = statusItem.button {
+            let dragView = StatusItemDragView(frame: button.bounds)
+            dragView.autoresizingMask = [.width, .height]
+            dragView.latestScreenshot = { screenshots(in: screenshotFolder()).first?.url }
+            dragView.openMenu = { [weak self] in
+                guard let self else { return }
+                self.statusItem.menu = self.menu
+                self.statusItem.button?.performClick(nil)
+                self.statusItem.menu = nil
+            }
+            button.addSubview(dragView)
+        }
         updateMenu()
     }
 
@@ -178,18 +256,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             log("cannot read \(url.path)")
             return false
         }
-        let type = UTType(filenameExtension: url.pathExtension) ?? .png
-        let item = NSPasteboardItem()
-        item.setData(data, forType: NSPasteboard.PasteboardType(type.identifier))
-        item.setString(url.absoluteString, forType: .fileURL)
-        if type != .tiff {
-            let provider = TIFFProvider(data: data)
-            item.setDataProvider(provider, forTypes: [.tiff])
-            tiffProvider = provider
-        }
+        let provider = TIFFProvider(data: data)
+        tiffProvider = provider
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        let ok = pasteboard.writeObjects([item])
+        let ok = pasteboard.writeObjects([pasteboardItem(for: url, data: data, tiffProvider: provider)])
         log(ok ? "copied \(url.path)" : "clipboard write failed for \(url.path)")
         return ok
     }

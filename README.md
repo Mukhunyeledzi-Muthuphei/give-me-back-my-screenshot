@@ -12,7 +12,10 @@ The file is still saved as normal.
 A camera icon appears in the menu bar. The first time, macOS asks whether **Lastshot** may access
 your Desktop (or wherever you save screenshots). Click **Allow**. It starts automatically at login.
 
-The menu bar icon gives you:
+**Drag the menu bar icon** to drop your latest screenshot anywhere: Slack, Mail, a browser upload
+box, a Finder folder (it copies, never moves). It works like the floating thumbnail's drag, but any time.
+
+**Click the icon** for:
 
 - **Copy Latest Screenshot**: get it back after you've copied something else
 - **Show Latest in Finder**
