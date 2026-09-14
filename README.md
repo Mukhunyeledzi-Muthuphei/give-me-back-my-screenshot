@@ -7,7 +7,7 @@ Missed it? Drag your latest screenshot straight out of the menu bar, any time.
 
 **[Download for Mac](https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/releases/latest/download/Give-Me-Back-My-Screenshot.zip)** · [Website](https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/)
 
-macOS 13+ · Apple silicon & Intel · 100 KB · no network access
+macOS 13+ · Apple silicon & Intel · 400 KB · no network access
 
 ## Install
 
