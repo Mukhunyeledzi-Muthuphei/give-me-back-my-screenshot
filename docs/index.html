@@ -3,15 +3,164 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Give Me Back My Screenshot</title>
-<meta name="description" content="The thumbnail vanished. Your screenshot didn't. A tiny free Mac app that puts every screenshot on your clipboard and lets you drag it out of the menu bar any time.">
-<meta property="og:title" content="Give Me Back My Screenshot">
-<meta property="og:description" content="Every Mac screenshot, on your clipboard automatically. Press ⌘V. Free and open source.">
+<title>Give Me Back My Screenshot: Copy Mac Screenshots to Clipboard Automatically</title>
+<meta name="description" content="Free, open-source Mac app that copies every screenshot to your clipboard automatically. Missed the floating thumbnail? Press ⌘V, or drag your latest screenshot out of the menu bar.">
+<meta name="keywords" content="mac screenshot to clipboard, copy screenshot to clipboard automatically mac, mac screenshot thumbnail disappears, where do screenshots go on mac, macOS screenshot app, menu bar screenshot app, drag screenshot mac, free mac utility">
+<meta name="author" content="Mukhunyeledzi Muthuphei">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110e" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/">
+
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#f6f1e9">
+<meta property="og:site_name" content="Give Me Back My Screenshot">
+<meta property="og:title" content="Give Me Back My Screenshot: every Mac screenshot, on your clipboard">
+<meta property="og:description" content="The thumbnail vanished. Your screenshot didn't. A free Mac app that copies every screenshot to your clipboard automatically. Press ⌘V.">
+<meta property="og:url" content="https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/">
+<meta property="og:image" content="https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Give Me Back My Screenshot: The thumbnail vanished. Your screenshot didn't.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Give Me Back My Screenshot: every Mac screenshot, on your clipboard">
+<meta name="twitter:description" content="A free Mac app that copies every screenshot to your clipboard automatically. Missed it? Drag it out of the menu bar.">
+<meta name="twitter:image" content="https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/og-image.png">
+<meta name="twitter:image:alt" content="Give Me Back My Screenshot: The thumbnail vanished. Your screenshot didn't.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="128x128" href="icon-128.png">
-<link rel="apple-touch-icon" href="icon-512.png">
-<meta property="og:image" content="https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/#website",
+      "url": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/",
+      "name": "Give Me Back My Screenshot",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/#software",
+      "name": "Give Me Back My Screenshot",
+      "description": "A free, open-source macOS menu bar app that copies every new screenshot to the clipboard automatically, as an image and as a file, and lets you drag your latest screenshot out of the menu bar any time.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "macOS 13 or later",
+      "url": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/",
+      "downloadUrl": "https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/releases/latest/download/Give-Me-Back-My-Screenshot.zip",
+      "fileSize": "400KB",
+      "image": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/icon-512.png",
+      "screenshot": "https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/og-image.png",
+      "isAccessibleForFree": true,
+      "license": "https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/blob/master/LICENSE",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Mukhunyeledzi Muthuphei",
+        "url": "https://github.com/Mukhunyeledzi-Muthuphei"
+      },
+      "publisher": {
+        "@type": "Person",
+        "name": "Mukhunyeledzi Muthuphei",
+        "url": "https://github.com/Mukhunyeledzi-Muthuphei"
+      }
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "give-me-back-my-screenshot",
+      "codeRepository": "https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot",
+      "programmingLanguage": "Swift",
+      "runtimePlatform": "macOS",
+      "license": "https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/blob/master/LICENSE"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I copy a screenshot to the clipboard automatically on a Mac?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "macOS only does it if you add ⌃ to the shortcut (⌃⌘⇧4), and then no file is saved. Give Me Back My Screenshot does both: take a screenshot the normal way (⌘⇧3, ⌘⇧4 or ⌘⇧5) and it's saved as a file and on your clipboard, ready for ⌘V."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where did my screenshot go? The thumbnail disappeared.",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "macOS saves screenshots to your Desktop unless you picked another folder in ⌘⇧5 → Options. With this app running you don't have to look: the latest one is already on your clipboard, and clicking the menu bar icon shows it so you can drag it anywhere or reveal it in Finder."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which Macs and macOS versions does it work on?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any Mac with Apple silicon or Intel running macOS 13 Ventura or later, including Sonoma, Sequoia, Tahoe and macOS 27."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Won't it overwrite whatever I copied?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, that's the point: a new screenshot takes over the clipboard, just as if you'd pressed ⌘C on it. Copied something important? Untick Copy New Screenshots Automatically in the menu to pause it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "I copied something else. How do I get my screenshot back?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Click the menu bar icon and choose Copy Latest Screenshot, or drag the preview at the top of the menu to wherever you want the screenshot."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why does it need access to my Desktop?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "That's where macOS saves screenshots by default, and macOS protects the Desktop folder. If you save screenshots somewhere else (⌘⇧5 → Options), it follows that folder instead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it send my screenshots anywhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It contains no networking code at all. It reads the new file and hands it to your clipboard. The whole app is one Swift file you can read on GitHub."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is there a short delay before it's copied?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "While the floating thumbnail is showing, macOS hasn't written the file yet. It lands (and gets copied) when the thumbnail goes away. Swipe the thumbnail off to skip the wait, or turn thumbnails off in ⌘⇧5 → Options."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I uninstall it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Choose Quit from its menu and drag the app from Applications to the Trash."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 <style>
   :root {
     --bg: #f6f1e9;
@@ -177,8 +326,8 @@
 
 <header>
   <div class="wrap">
-    <a class="brand" href="#">
-      <img class="brand-mark" src="icon-128.png" alt="" width="34" height="34">
+    <a class="brand" href="./">
+      <img class="brand-mark" src="icon-128.png" alt="Give Me Back My Screenshot app icon" width="34" height="34">
       Give Me Back My Screenshot
     </a>
     <a class="gh" href="https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot">
@@ -191,10 +340,10 @@
 <main>
   <div class="wrap hero">
     <div>
-      <span class="eyebrow"><b>Free</b> · Open source · For macOS</span>
+      <span class="eyebrow"><b>Free</b> Mac app · Open source · macOS 13+</span>
       <h1>The thumbnail vanished. <em>Your screenshot didn't.</em></h1>
       <p class="lede">
-        Take a screenshot like you always do. It's already on your clipboard, so just press <kbd>⌘V</kbd>.
+        Take a screenshot like you always do. This free Mac app copies it to your clipboard automatically, so just press <kbd>⌘V</kbd>.
         Missed it? Drag it out of the menu bar, any time.
       </p>
       <div class="cta">
@@ -322,6 +471,18 @@
   <section>
     <div class="wrap">
       <h2>Questions</h2>
+      <details>
+        <summary>How do I copy a screenshot to the clipboard automatically on a Mac?</summary>
+        <p>macOS only does it if you add <kbd>⌃</kbd> to the shortcut (<kbd>⌃⌘⇧4</kbd>), and then no file is saved. Give Me Back My Screenshot does both: take a screenshot the normal way (<kbd>⌘⇧3</kbd>, <kbd>⌘⇧4</kbd> or <kbd>⌘⇧5</kbd>) and it's saved as a file and on your clipboard, ready for <kbd>⌘V</kbd>.</p>
+      </details>
+      <details>
+        <summary>Where did my screenshot go? The thumbnail disappeared.</summary>
+        <p>macOS saves screenshots to your Desktop unless you picked another folder in <kbd>⌘⇧5</kbd> → Options. With this app running you don't have to look: the latest one is already on your clipboard, and clicking the menu bar icon shows it so you can drag it anywhere or reveal it in Finder.</p>
+      </details>
+      <details>
+        <summary>Which Macs and macOS versions does it work on?</summary>
+        <p>Any Mac with Apple silicon or Intel running macOS 13 Ventura or later, including Sonoma, Sequoia, Tahoe and macOS 27.</p>
+      </details>
       <details>
         <summary>Won't it overwrite whatever I copied?</summary>
         <p>Yes, that's the point: a new screenshot takes over the clipboard, just as if you'd pressed ⌘C on it. Copied something important? Untick <b>Copy New Screenshots Automatically</b> in the menu to pause it.</p>

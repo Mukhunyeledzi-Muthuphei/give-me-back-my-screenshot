@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/sitemap.xml
