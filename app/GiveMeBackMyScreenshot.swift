@@ -86,8 +86,36 @@ func pasteboardItem(for url: URL, data: Data, tiffProvider: TIFFProvider?) -> NS
     return item
 }
 
+/// Starts dragging a screenshot out of `view`, with a small preview under the cursor.
+func beginScreenshotDrag(of url: URL, from view: NSView & NSDraggingSource, event: NSEvent) {
+    guard let data = try? Data(contentsOf: url) else { return NSSound.beep() }
+    let item = NSDraggingItem(pasteboardWriter: pasteboardItem(for: url, data: data, tiffProvider: nil))
+    let preview = thumbnail(of: NSImage(data: data), maxSide: 160)
+    let p = view.convert(event.locationInWindow, from: nil)
+    item.setDraggingFrame(NSRect(x: p.x - preview.size.width / 2, y: p.y - preview.size.height / 2,
+                                 width: preview.size.width, height: preview.size.height),
+                          contents: preview)
+    view.beginDraggingSession(with: [item], event: event, source: view).animatesToStartingPositionsOnCancelOrFail = true
+}
+
+func thumbnail(of image: NSImage?, maxSide: CGFloat) -> NSImage {
+    guard let image, image.size.width > 0, image.size.height > 0 else {
+        return NSImage(systemSymbolName: "photo", accessibilityDescription: nil)!
+    }
+    let scale = min(1, maxSide / max(image.size.width, image.size.height))
+    let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+    return NSImage(size: size, flipped: false) { rect in
+        image.draw(in: rect)
+        NSColor.white.withAlphaComponent(0.8).setStroke()
+        NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
+        return true
+    }
+}
+
 /// Sits over the menu bar icon: a click opens the menu, a drag picks up the
 /// latest screenshot — the floating thumbnail's drag, but available any time.
+/// macOS 27 no longer passes drags on status items through to the app (it sends
+/// a click on release instead), so there the menu's thumbnail does this job.
 final class StatusItemDragView: NSView, NSDraggingSource {
     var latestScreenshot: () -> URL? = { nil }
     var openMenu: () -> Void = {}
@@ -98,46 +126,100 @@ final class StatusItemDragView: NSView, NSDraggingSource {
         while let next = window.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
             if next.type == .leftMouseUp { return openMenu() }
             let p = next.locationInWindow
-            if hypot(p.x - start.x, p.y - start.y) > 3 { return beginDrag(with: event) }
+            if hypot(p.x - start.x, p.y - start.y) > 3 {
+                guard let url = latestScreenshot() else { return NSSound.beep() }
+                return beginScreenshotDrag(of: url, from: self, event: event)
+            }
         }
     }
 
     override func rightMouseDown(with event: NSEvent) { openMenu() }
 
-    private func beginDrag(with event: NSEvent) {
-        guard let url = latestScreenshot(), let data = try? Data(contentsOf: url) else { return NSSound.beep() }
-        let item = NSDraggingItem(pasteboardWriter: pasteboardItem(for: url, data: data, tiffProvider: nil))
-        let preview = thumbnail(of: data, maxSide: 160)
-        let p = convert(event.locationInWindow, from: nil)
-        item.setDraggingFrame(NSRect(x: p.x - preview.size.width / 2, y: p.y - preview.size.height / 2,
-                                     width: preview.size.width, height: preview.size.height),
-                              contents: preview)
-        beginDraggingSession(with: [item], event: event, source: self).animatesToStartingPositionsOnCancelOrFail = true
-    }
-
     // Copy, never move: dropping on a Finder folder must leave the original in place.
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         .copy
     }
+}
 
-    private func thumbnail(of data: Data, maxSide: CGFloat) -> NSImage {
-        guard let image = NSImage(data: data), image.size.width > 0, image.size.height > 0 else {
-            return NSImage(systemSymbolName: "photo", accessibilityDescription: nil)!
+/// Top of the menu: a preview of the latest screenshot that can be dragged anywhere.
+final class LatestScreenshotView: NSView, NSDraggingSource {
+    private static let width: CGFloat = 260, maxHeight: CGFloat = 150, padding: CGFloat = 12
+    private let imageView = NSImageView()
+    private let caption = NSTextField(labelWithString: "Drag to drop anywhere")
+    private var imageSize = NSSize.zero
+    var url: URL?
+
+    init() {
+        super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: 100))
+        autoresizingMask = .width  // the menu widens it to fit its longest item
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.unregisterDraggedTypes()  // don't accept drops
+        imageView.wantsLayer = true
+        imageView.layer?.cornerRadius = 6
+        imageView.layer?.masksToBounds = true
+        imageView.layer?.borderWidth = 0.5
+        caption.font = .menuFont(ofSize: NSFont.smallSystemFontSize)
+        caption.textColor = .secondaryLabelColor
+        caption.alignment = .center
+        addSubview(imageView)
+        addSubview(caption)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func show(_ url: URL) {
+        self.url = url
+        let image = NSImage(contentsOf: url)
+        imageView.image = image
+        // Fit within the narrowest the menu can be, so the height is known up front.
+        let full = image?.size ?? NSSize(width: 4, height: 3)
+        let scale = min((Self.width - 2 * Self.padding) / max(full.width, 1), Self.maxHeight / max(full.height, 1))
+        imageSize = NSSize(width: (full.width * scale).rounded(), height: (full.height * scale).rounded())
+        setFrameSize(NSSize(width: frame.width, height: 6 + caption.intrinsicContentSize.height + 4 + imageSize.height + 6))
+        toolTip = url.lastPathComponent
+        needsLayout = true
+    }
+
+    override func layout() {
+        super.layout()
+        let captionHeight = caption.intrinsicContentSize.height
+        caption.frame = NSRect(x: Self.padding, y: 6, width: bounds.width - 2 * Self.padding, height: captionHeight)
+        imageView.frame = NSRect(x: ((bounds.width - imageSize.width) / 2).rounded(), y: caption.frame.maxY + 4,
+                                 width: imageSize.width, height: imageSize.height)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            imageView.layer?.borderColor = NSColor.separatorColor.cgColor
         }
-        let scale = min(1, maxSide / max(image.size.width, image.size.height))
-        let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
-        return NSImage(size: size, flipped: false) { rect in
-            image.draw(in: rect)
-            NSColor.white.withAlphaComponent(0.8).setStroke()
-            NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
-            return true
-        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        viewDidChangeEffectiveAppearance()
+    }
+
+    // Keep mouse-down from falling through to the menu, which would close it.
+    override func mouseDown(with event: NSEvent) {}
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let url else { return }
+        beginScreenshotDrag(of: url, from: self, event: event)
+        // Get the menu out of the way of wherever the screenshot is going.
+        DispatchQueue.main.async { self.enclosingMenuItem?.menu?.cancelTracking() }
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        .copy
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
+    private var latestItem: NSMenuItem!
+    private let latestView = LatestScreenshotView()
     private var pauseItem: NSMenuItem!
     private var loginItem: NSMenuItem!
     private var source: DispatchSourceFileSystemObject?
@@ -192,7 +274,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "Give Me Back My Screenshot is running"
         alert.informativeText = """
             It lives in your menu bar (the camera icon). Every screenshot you take is now \
-            on your clipboard, so just press ⌘V. Drag the icon to drop your latest screenshot anywhere.
+            on your clipboard, so just press ⌘V. Click the icon to drag your latest screenshot anywhere.
 
             Next, macOS will ask to let it access your Desktop so it can see new screenshots. Click Allow.
             """
@@ -205,8 +287,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setUpMenu() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "camera.viewfinder", accessibilityDescription: "Give Me Back My Screenshot")
-        statusItem.button?.toolTip = "Click for menu · Drag to drop your latest screenshot anywhere"
+        statusItem.button?.toolTip = "Click to drag out your latest screenshot"
         menu = NSMenu()
+        menu.delegate = self
+        latestItem = NSMenuItem()
+        latestItem.view = latestView
+        menu.addItem(latestItem)
         menu.addItem(NSMenuItem(title: "Copy Latest Screenshot", action: #selector(copyLatest), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Show Latest in Finder", action: #selector(revealLatest), keyEquivalent: ""))
         menu.addItem(.separator())
@@ -233,6 +319,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.addSubview(dragView)
         }
         updateMenu()
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        if let url = screenshots(in: screenshotFolder()).first?.url {
+            latestView.show(url)
+            latestItem.isHidden = false
+        } else {
+            latestItem.isHidden = true
+        }
     }
 
     private func updateMenu() {

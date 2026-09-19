@@ -3,7 +3,7 @@
 **The thumbnail vanished. Your screenshot didn't.**
 
 Take a screenshot as usual (⌘⇧3, ⌘⇧4, ⌘⇧5) and it's already on your clipboard. Just press ⌘V.
-Missed it? Drag your latest screenshot straight out of the menu bar, any time.
+Missed it? Click the menu bar icon and drag your latest screenshot out, any time.
 
 **[Download for Mac](https://github.com/Mukhunyeledzi-Muthuphei/give-me-back-my-screenshot/releases/latest/download/Give-Me-Back-My-Screenshot.zip)** · [Website](https://mukhunyeledzi-muthuphei.github.io/give-me-back-my-screenshot/)
 
@@ -21,8 +21,8 @@ macOS 13+ · Apple silicon & Intel · 400 KB · no network access
 ## Using it
 
 - **Screenshot → ⌘V.** Every new screenshot is copied as an image (for chats and docs) and as a file (for Finder and Mail).
-- **Drag the menu bar icon** to drop your latest screenshot anywhere. Dropping on a Finder folder makes a copy.
-- **Click the icon** for: Copy Latest Screenshot · Show Latest in Finder · Copy New Screenshots Automatically (untick to pause) · Open at Login · Quit.
+- **Click the menu bar icon** to see your latest screenshot, then drag it anywhere. Dropping on a Finder folder makes a copy.
+- **The same menu** has: Copy Latest Screenshot · Show Latest in Finder · Copy New Screenshots Automatically (untick to pause) · Open at Login · Quit.
 
 ## How it works
 
